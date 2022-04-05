@@ -2,22 +2,25 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-// PWM frequency the servo expects
 #define SERVO_FREQ 50
-
-// Min pulse length of the servo (i.e. the 0 positon)
-#define MIN_PULSE_LENGTH 150
-
-// Max pulse length of the servo (i.e. the 180 position)
-#define MAX_PULSE_LENGTH 600
+#define PIN_BTN_HIGHER GPIO_NUM_33
+#define PIN_BTN_LOWER GPIO_NUM_32
 
 Adafruit_PWMServoDriver servoController = Adafruit_PWMServoDriver(0x40);
+uint16_t current;
+uint16_t step = 1;
+uint16_t servo;
 
 void initSerial() {
     Serial.begin(115200);
     while (!Serial && !Serial.available()) {
     }
     Serial.println();
+}
+
+void initButtons() {
+    pinMode(PIN_BTN_HIGHER, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_LOWER, INPUT_PULLDOWN);
 }
 
 void initServoController() {
@@ -28,16 +31,32 @@ void initServoController() {
 
 void setup() {
     initSerial();
+    initButtons();
     initServoController();
-    delay(100);
 
-    // Test min pulse length
-    // Decrease value until servo doen't turn any furthe and makes noise
-    servoController.setPWM(0, 0, MIN_PULSE_LENGTH);
-
-    // Test max pulse length
-    // Increase until servo does not turn any further
-    // servoController.setPWM(0, 0, MAX_PULSE_LENGTH);
+    current = 200;
+    servo = 0;
+    servoController.setPWM(servo, 0, current);
+    delay(1000);
 }
 
-void loop() {}
+void loop() {
+    if (digitalRead(PIN_BTN_HIGHER) && digitalRead(PIN_BTN_LOWER)) {
+        if (step != 1)
+            step = 1;
+        else
+            step = 10;
+        Serial.printf("Step size: %u\n", step);
+        delay(200);
+    } else if (digitalRead(PIN_BTN_HIGHER)) {
+        current += step;
+        Serial.println(current);
+        servoController.setPWM(servo, 0, current);
+    } else if (digitalRead(PIN_BTN_LOWER)) {
+        current -= step;
+        Serial.println(current);
+        servoController.setPWM(servo, 0, current);
+    }
+
+    delay(80);
+}
