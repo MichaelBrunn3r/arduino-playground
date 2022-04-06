@@ -2,6 +2,11 @@
 
 A tool to find the min/max PWM pulse-length/ticks of a Servo.
 
+## Usage
+
+-   Press left/right button to lower/increase pulse length
+-   Press both left and right button to toggle step size between 1 and 10
+
 ## Parts
 
 ### PCA9685 servo driver:
