@@ -34,7 +34,7 @@ void setup() {
     initButtons();
     initServoController();
 
-    current = 200;
+    current = 300;
     servo = 0;
     servoController.setPWM(servo, 0, current);
     delay(1000);
