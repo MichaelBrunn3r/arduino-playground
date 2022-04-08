@@ -3,9 +3,9 @@
 #include <Wire.h>
 
 #define SERVO_FREQ 50
-#define PIN_BTN_HIGHER GPIO_NUM_33
-#define PIN_BTN_LOWER GPIO_NUM_32
-#define PIN_BTN_ACKNOWLEDGE GPIO_NUM_25
+#define PIN_BTN_INC GPIO_NUM_33
+#define PIN_BTN_DEC GPIO_NUM_32
+#define PIN_BTN_OK GPIO_NUM_25
 
 typedef enum {
     FIND_1ST_TICK_LIMIT,
@@ -32,9 +32,9 @@ void initSerial() {
 }
 
 void initButtons() {
-    pinMode(PIN_BTN_HIGHER, INPUT_PULLDOWN);
-    pinMode(PIN_BTN_LOWER, INPUT_PULLDOWN);
-    pinMode(PIN_BTN_ACKNOWLEDGE, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_INC, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_DEC, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_OK, INPUT_PULLDOWN);
 }
 
 void initServoController() {
@@ -52,7 +52,7 @@ void reset() {
     offset = 0;
     middle = 0;
     servoController.wakeup();
-    Serial.println("Search the 1st tick limit, then press ACKNOWLEDGE.");
+    Serial.println("Search the 1st tick limit, then press OK.");
 }
 
 void setup() {
@@ -65,18 +65,18 @@ void setup() {
 }
 
 void handleTickControlls() {
-    if (digitalRead(PIN_BTN_HIGHER) && digitalRead(PIN_BTN_LOWER)) {
+    if (digitalRead(PIN_BTN_INC) && digitalRead(PIN_BTN_DEC)) {
         if (step != 1)
             step = 1;
         else
             step = 10;
         Serial.printf("Step size is now: %u\n", step);
         delay(200);
-    } else if (digitalRead(PIN_BTN_HIGHER)) {
+    } else if (digitalRead(PIN_BTN_INC)) {
         currentTick += step;
         Serial.println(currentTick);
         servoController.setPWM(0, 0, currentTick);
-    } else if (digitalRead(PIN_BTN_LOWER)) {
+    } else if (digitalRead(PIN_BTN_DEC)) {
         currentTick -= step;
         Serial.println(currentTick);
         servoController.setPWM(0, 0, currentTick);
@@ -88,10 +88,10 @@ int angleToTicks(int angle, int range, int tickLimits[2]) {
 }
 
 void loop() {
-    if (digitalRead(PIN_BTN_ACKNOWLEDGE)) {
+    if (digitalRead(PIN_BTN_OK)) {
         switch (state) {
             case State::FIND_1ST_TICK_LIMIT: {
-                Serial.println("Search the 2nd tick limit, then press ACKNOWLEDGE.");
+                Serial.println("Search the 2nd tick limit, then press OK.");
                 state = State::FIND_2ND_TICK_LIMIT;
                 tickLimits[0] = currentTick;
                 break;
@@ -111,8 +111,7 @@ void loop() {
                 Serial.println(
                     "Take the servo arm off and roughly put it where you want it to be when "
                     "the servo is in its middle position.");
-                Serial.println(
-                    "Adjust servo arm finely with button controls, then press ACKNOWLEDGE.");
+                Serial.println("Adjust servo arm finely with button controls, then press OK.");
 
                 state = State::ADJUST_MIDDLE;
                 currentTick = middle;
@@ -123,7 +122,7 @@ void loop() {
                 offset = currentTick - middle;
                 Serial.printf("Middle offset: %d ticks\n", offset);
 
-                Serial.println("Now turn the servo 90 degrees, then press ACKNOWLEDGE.");
+                Serial.println("Now turn the servo 90 degrees, then press OK.");
                 state = State::FIND_90_DEG;
                 break;
             };

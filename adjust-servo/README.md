@@ -7,7 +7,7 @@ This sketch helps you with:
 
 ## Usage
 
-Follow Instructions in Serial Monitor:
+Follow Instructions on the Serial Monitor:
 
 1. Find the shortes PWM pulse length
 2. Find the longest PWM pulse length
@@ -19,7 +19,7 @@ Follow Instructions in Serial Monitor:
 -   DEC: Decrease PWM pulse length
 -   INC: Increase PWM pulse length
 -   DEC + INC: Toggle step size between 1 and 10
--   ACK: Acknowledge
+-   OK: Acknowledge
 
 ## Parts
 
