@@ -196,6 +196,7 @@ Servo is now in the middle position.
 --- Step 4 ---
 )===");
             state = State::FIND_90_DEG;
+            setServoTicks(tickRange.min + abs((tickRange.min - tickRange.max) / 8));
             break;
         };
         case State::FIND_90_DEG: {
