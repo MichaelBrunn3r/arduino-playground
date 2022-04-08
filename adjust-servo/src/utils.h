@@ -12,8 +12,13 @@ template <typename T> struct Range {
 };
 
 typedef int AngleDeg;
-typedef int PWMTick;
+typedef int PWMTicks;
 
-PWMTick angleToTicks(AngleDeg angle, AngleDeg maxAngle, Range<PWMTick> tickRange) {
+PWMTicks angleToTicks(AngleDeg angle, AngleDeg maxAngle, Range<PWMTicks> tickRange) {
     return map(angle, -maxAngle / 2, maxAngle / 2, tickRange.min, tickRange.max);
+}
+
+float ticksToPulseLengthMs(PWMTicks ticks) {
+    float pwmPeriodMs = 20.0f;
+    return (ticks / 4096.0f) * pwmPeriodMs;
 }

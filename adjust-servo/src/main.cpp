@@ -19,12 +19,12 @@ typedef enum {
 State state;
 
 Adafruit_PWMServoDriver servoController = Adafruit_PWMServoDriver(0x40);
-PWMTick current;
-PWMTick step;
+PWMTicks current;
+PWMTicks step;
 int servo;
-Range<PWMTick> tickRange;
-PWMTick middle;
-PWMTick offset;
+Range<PWMTicks> tickRange;
+PWMTicks middle;
+PWMTicks offset;
 
 void initSerial() {
     Serial.begin(115200);
@@ -89,39 +89,51 @@ void handleTickControlls() {
     }
 }
 
-void printSummary(Range<PWMTick> tickRange, PWMTick middle, PWMTick offset, AngleDeg offsetDeg,
+void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, AngleDeg offsetDeg,
                   AngleDeg maxRotation) {
     Serial.println("--- Summary ---");
-
-    Serial.printf("Shortest = %d Ticks\n", tickRange.min);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("|          | Ticks | Pulse length |\n");
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %8s | %5d | %9f ms |\n", "Shortest", tickRange.min,
+                  ticksToPulseLengthMs(tickRange.min));
     servoController.setPWM(0, 0, tickRange.min);
     delay(2000);
 
-    Serial.printf("Longest  = %d Ticks\n", tickRange.max);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %8s | %5d | %9f ms |\n", "Longest", tickRange.max,
+                  ticksToPulseLengthMs(tickRange.max));
     servoController.setPWM(0, 0, tickRange.max);
     delay(2000);
 
-    Serial.printf("Middle   = %d Ticks\n", middle);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %8s | %5d | %9f ms |\n", "Middle", middle, ticksToPulseLengthMs(middle));
     servoController.setPWM(0, 0, middle);
     delay(2000);
 
-    Serial.printf("Offset   = %d Ticks\n", offset);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %8s | %5d | %9f ms |\n", "Offset", offset, ticksToPulseLengthMs(offset));
 
-    PWMTick ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("0°       = %d Ticks\n", ticks0Deg);
+    PWMTicks ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %9s | %5d | %9f ms |\n", "0°", ticks0Deg, ticksToPulseLengthMs(ticks0Deg));
     servoController.setPWM(0, 0, ticks0Deg);
     delay(2000);
 
-    PWMTick ticks90Deg = angleToTicks(90 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("90°      = %d Ticks\n", ticks90Deg);
+    PWMTicks ticks90Deg = angleToTicks(90 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %9s | %5d | %9f ms |\n", "90°", ticks90Deg, ticksToPulseLengthMs(ticks90Deg));
     servoController.setPWM(0, 0, ticks90Deg);
     delay(2000);
 
-    PWMTick ticksNeg90Deg = angleToTicks(-90 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("-90°     = %d Ticks\n", ticksNeg90Deg);
+    PWMTicks ticksNeg90Deg = angleToTicks(-90 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("|----------|-------|--------------|\n");
+    Serial.printf("| %9s | %5d | %9f ms |\n", "-90°", ticksNeg90Deg,
+                  ticksToPulseLengthMs(ticksNeg90Deg));
     servoController.setPWM(0, 0, ticksNeg90Deg);
     delay(2000);
 
+    Serial.printf("|----------|-------|--------------|\n");
     Serial.println("--- Summary ---");
 }
 
@@ -141,7 +153,7 @@ void handleOK() {
         case State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT: {
             tickRange.max = current;
             if (!(tickRange.min < tickRange.max)) {
-                PWMTick tmp = tickRange.min;
+                PWMTicks tmp = tickRange.min;
                 tickRange.min = tickRange.max;
                 tickRange.max = tmp;
             }
