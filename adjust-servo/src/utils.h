@@ -11,11 +11,11 @@ template <typename T> struct Range {
     };
 };
 
-typedef int AngleDeg;
+typedef float AngleDeg;
 typedef int PWMTicks;
 
 PWMTicks angleToTicks(AngleDeg angle, AngleDeg maxAngle, Range<PWMTicks> tickRange) {
-    return map(angle, -maxAngle / 2, maxAngle / 2, tickRange.min, tickRange.max);
+    return int(map(angle, -maxAngle / 2, maxAngle / 2, tickRange.min, tickRange.max));
 }
 
 float ticksToPulseLengthMs(PWMTicks ticks, Adafruit_PWMServoDriver driver) {
