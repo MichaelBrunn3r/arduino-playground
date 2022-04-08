@@ -125,30 +125,29 @@ void printSummary(Range<PWMTick> tickRange, PWMTick middle, PWMTick offset, Angl
     Serial.println("--- Summary ---");
 }
 
-void loop() {
-    if (digitalRead(PIN_BTN_OK)) {
-        switch (state) {
-            case State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT: {
-                Serial.printf(R"===(
+void handleOK() {
+    switch (state) {
+        case State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT: {
+            Serial.printf(R"===(
 --- Step 2 ---
 1. Move servo to its 2nd PWM pulse length limit
 2. Press OK
 --- Step 2 ---
 )===");
-                state = State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT;
-                tickRange.min = current;
-                break;
-            };
-            case State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT: {
-                tickRange.max = current;
-                if (!(tickRange.min < tickRange.max)) {
-                    PWMTick tmp = tickRange.min;
-                    tickRange.min = tickRange.max;
-                    tickRange.max = tmp;
-                }
-                middle = tickRange.min + (tickRange.max - tickRange.min) / 2;
+            state = State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT;
+            tickRange.min = current;
+            break;
+        };
+        case State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT: {
+            tickRange.max = current;
+            if (!(tickRange.min < tickRange.max)) {
+                PWMTick tmp = tickRange.min;
+                tickRange.min = tickRange.max;
+                tickRange.max = tmp;
+            }
+            middle = tickRange.min + (tickRange.max - tickRange.min) / 2;
 
-                Serial.printf(R"===(
+            Serial.printf(R"===(
 --- Step 3 ---
 Servo is now in the middle position.
 1. Take off the servo arm
@@ -158,32 +157,37 @@ Servo is now in the middle position.
 --- Step 3 ---
 )===");
 
-                state = State::ADJUST_MIDDLE;
-                current = middle;
-                servoController.setPWM(0, 0, middle);
-                break;
-            };
-            case State::ADJUST_MIDDLE: {
-                offset = current - middle;
-                Serial.printf("Middle offset: %d ticks\n", offset);
+            state = State::ADJUST_MIDDLE;
+            current = middle;
+            servoController.setPWM(0, 0, middle);
+            break;
+        };
+        case State::ADJUST_MIDDLE: {
+            offset = current - middle;
+            Serial.printf("Middle offset: %d ticks\n", offset);
 
-                Serial.printf(R"===(
+            Serial.printf(R"===(
 --- Step 4 ---
 1. Turn the servo by 90˚ in any direction (you can eyeball it)
 2. Press OK
 --- Step 4 ---
 )===");
-                state = State::FIND_90_DEG;
-                break;
-            };
-            case State::FIND_90_DEG: {
-                float ticksPerDeg = 90.0f / abs(current - (middle + offset));
-                AngleDeg maxRotation = abs(tickRange.min - tickRange.max) * ticksPerDeg;
-                AngleDeg offsetDeg = offset * ticksPerDeg;
-                printSummary(tickRange, middle, offset, offsetDeg, maxRotation);
-                reset();
-            };
-        }
+            state = State::FIND_90_DEG;
+            break;
+        };
+        case State::FIND_90_DEG: {
+            float ticksPerDeg = 90.0f / abs(current - (middle + offset));
+            AngleDeg maxRotation = abs(tickRange.min - tickRange.max) * ticksPerDeg;
+            AngleDeg offsetDeg = offset * ticksPerDeg;
+            printSummary(tickRange, middle, offset, offsetDeg, maxRotation);
+            reset();
+        };
+    }
+}
+
+void loop() {
+    if (digitalRead(PIN_BTN_OK)) {
+        handleOK();
         delay(200);
     }
 
