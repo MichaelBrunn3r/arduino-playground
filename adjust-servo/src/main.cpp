@@ -10,8 +10,8 @@
 #define PIN_BTN_OK GPIO_NUM_25
 
 typedef enum {
-    FIND_1ST_TICK_LIMIT,
-    FIND_2ND_TICK_LIMIT,
+    FIND_1ST_PWM_PULSE_LENGTH_LIMIT,
+    FIND_2ND_PWM_PULSE_LENGTH_LIMIT,
     ADJUST_MIDDLE,
     FIND_90_DEG,
 } State;
@@ -49,11 +49,16 @@ void reset() {
     step = 1;
     current = 300;
     tickRange.min = tickRange.max = 0;
-    state = State::FIND_1ST_TICK_LIMIT;
+    state = State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT;
     offset = 0;
     middle = 0;
     servoController.wakeup();
-    Serial.println("Search the 1st tick limit, then press OK.");
+    Serial.printf(R"===(
+--- Step 1 ---
+1. Move servo to its 1st PWM pulse length limit
+2. Press OK
+--- Step 1 ---
+)===");
 }
 
 void setup() {
@@ -71,7 +76,7 @@ void handleTickControlls() {
             step = 1;
         else
             step = 10;
-        Serial.printf("Step size is now: %u\n", step);
+        Serial.printf("Set step size to: %u\n", step);
         delay(200);
     } else if (digitalRead(PIN_BTN_INC)) {
         current += step;
@@ -84,31 +89,74 @@ void handleTickControlls() {
     }
 }
 
+void printSummary(Range<PWMTick> tickRange, PWMTick middle, PWMTick offset, AngleDeg offsetDeg,
+                  AngleDeg maxRotation) {
+    Serial.println("--- Summary ---");
+
+    Serial.printf("Shortest = %d Ticks\n", tickRange.min);
+    servoController.setPWM(0, 0, tickRange.min);
+    delay(2000);
+
+    Serial.printf("Longest  = %d Ticks\n", tickRange.max);
+    servoController.setPWM(0, 0, tickRange.max);
+    delay(2000);
+
+    Serial.printf("Middle   = %d Ticks\n", middle);
+    servoController.setPWM(0, 0, middle);
+    delay(2000);
+
+    Serial.printf("Offset   = %d Ticks\n", offset);
+
+    PWMTick ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("0°       = %d Ticks\n", ticks0Deg);
+    servoController.setPWM(0, 0, ticks0Deg);
+    delay(2000);
+
+    PWMTick ticks90Deg = angleToTicks(90 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("90°      = %d Ticks\n", ticks90Deg);
+    servoController.setPWM(0, 0, ticks90Deg);
+    delay(2000);
+
+    PWMTick ticksNeg90Deg = angleToTicks(-90 + offsetDeg, maxRotation, tickRange);
+    Serial.printf("-90°     = %d Ticks\n", ticksNeg90Deg);
+    servoController.setPWM(0, 0, ticksNeg90Deg);
+    delay(2000);
+
+    Serial.println("--- Summary ---");
+}
+
 void loop() {
     if (digitalRead(PIN_BTN_OK)) {
         switch (state) {
-            case State::FIND_1ST_TICK_LIMIT: {
-                Serial.println("Search the 2nd tick limit, then press OK.");
-                state = State::FIND_2ND_TICK_LIMIT;
+            case State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT: {
+                Serial.printf(R"===(
+--- Step 2 ---
+1. Move servo to its 2nd PWM pulse length limit
+2. Press OK
+--- Step 2 ---
+)===");
+                state = State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT;
                 tickRange.min = current;
                 break;
             };
-            case State::FIND_2ND_TICK_LIMIT: {
+            case State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT: {
                 tickRange.max = current;
                 if (!(tickRange.min < tickRange.max)) {
-                    int tmp = tickRange.min;
+                    PWMTick tmp = tickRange.min;
                     tickRange.min = tickRange.max;
                     tickRange.max = tmp;
                 }
                 middle = tickRange.min + (tickRange.max - tickRange.min) / 2;
-                Serial.printf("Limits: [%d, %d], Middle: %d\n", tickRange.min, tickRange.max,
-                              middle);
 
-                Serial.println("Servo is now in the middle position.");
-                Serial.println(
-                    "Take the servo arm off and roughly put it where you want it to be when "
-                    "the servo is in its middle position.");
-                Serial.println("Adjust servo arm finely with button controls, then press OK.");
+                Serial.printf(R"===(
+--- Step 3 ---
+Servo is now in the middle position.
+1. Take off the servo arm
+2. Put the servo arm where you want the 0˚ position to be
+3. Make fine adjustments with the button controls
+4. Press OK
+--- Step 3 ---
+)===");
 
                 state = State::ADJUST_MIDDLE;
                 current = middle;
@@ -119,38 +167,20 @@ void loop() {
                 offset = current - middle;
                 Serial.printf("Middle offset: %d ticks\n", offset);
 
-                Serial.println("Now turn the servo 90 degrees, then press OK.");
+                Serial.printf(R"===(
+--- Step 4 ---
+1. Turn the servo by 90˚ in any direction (you can eyeball it)
+2. Press OK
+--- Step 4 ---
+)===");
                 state = State::FIND_90_DEG;
                 break;
             };
             case State::FIND_90_DEG: {
-                int ticks0Deg = middle + offset;
-                int ticks90Deg = current;
-                float ticksPerDeg = 90.0f / abs(ticks90Deg - ticks0Deg);
-                int range = abs(tickRange.min - tickRange.max) * ticksPerDeg;
-                int offsetDeg = offset * ticksPerDeg;
-
-                Serial.println("A final test ...");
-                Serial.printf("Lower limit: %d\n", tickRange.min);
-                servoController.setPWM(0, 0, tickRange.min);
-                delay(2000);
-                Serial.printf("Upper limit: %d\n", tickRange.max);
-                servoController.setPWM(0, 0, tickRange.max);
-                delay(2000);
-                Serial.println("0°");
-                servoController.setPWM(0, 0, angleToTicks(0 + offsetDeg, range, tickRange));
-                delay(2000);
-                Serial.println("90°");
-                servoController.setPWM(0, 0, angleToTicks(90 + offsetDeg, range, tickRange));
-                delay(2000);
-                Serial.println("-90°");
-                servoController.setPWM(0, 0, angleToTicks(-90 + offsetDeg, range, tickRange));
-                delay(2000);
-
-                Serial.printf("Limits: [%d, %d], Middle: %d, Offset: %d = %d°, Range: %d°\n",
-                              tickRange.min, tickRange.max, middle, offset, offsetDeg, range);
-
-                Serial.println("You can now test the next servo.");
+                float ticksPerDeg = 90.0f / abs(current - (middle + offset));
+                AngleDeg maxRotation = abs(tickRange.min - tickRange.max) * ticksPerDeg;
+                AngleDeg offsetDeg = offset * ticksPerDeg;
+                printSummary(tickRange, middle, offset, offsetDeg, maxRotation);
                 reset();
             };
         }
