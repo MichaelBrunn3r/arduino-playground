@@ -103,6 +103,9 @@ void handleTickControlls() {
 void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, AngleDeg offsetDeg,
                   AngleDeg maxRotation) {
     Serial.println("--- Summary ---");
+    Serial.printf("- Rotation range: %d˚\n", maxRotation);
+    Serial.printf("- Offset: %d Ticks = %f ms\n\n", offset, ticksToPulseLengthMs(offset));
+
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("|          | Ticks | Pulse length |\n");
     Serial.printf("|----------|-------|--------------|\n");
@@ -116,14 +119,6 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, A
                   ticksToPulseLengthMs(tickRange.max));
     servoController.setPWM(0, 0, tickRange.max);
     delay(2000);
-
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %8s | %5d | %9f ms |\n", "Middle", middle, ticksToPulseLengthMs(middle));
-    servoController.setPWM(0, 0, middle);
-    delay(2000);
-
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %8s | %5d | %9f ms |\n", "Offset", offset, ticksToPulseLengthMs(offset));
 
     PWMTicks ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
