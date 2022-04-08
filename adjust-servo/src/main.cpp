@@ -47,6 +47,11 @@ void initServoController() {
     servoController.setPWMFreq(SERVO_FREQ);
 }
 
+void setServoTicks(PWMTicks ticks) {
+    current = ticks;
+    servoController.setPWM(0, 0, current);
+}
+
 void reset() {
     if (minTicksGuess <= 0 || maxTicksGuess <= 0) {
         minTicksGuess = maxTicksGuess = 300;
@@ -56,12 +61,11 @@ void reset() {
     }
 
     step = 1;
-    current = minTicksGuess;
     tickRange.min = tickRange.max = 0;
     state = State::FIND_SHORTEST_PULSE_LENGTH;
     offset = 0;
     middle = 0;
-    servoController.setPWM(0, 0, current);
+    setServoTicks(minTicksGuess);
     Serial.printf(R"===(
 --- Step 1 ---
 1. Move servo to the shortest PWM pulse length
@@ -88,13 +92,11 @@ void handleTickControlls() {
         Serial.printf("Set step size to: %u\n", step);
         delay(200);
     } else if (digitalRead(PIN_BTN_INC)) {
-        current += step;
+        setServoTicks(current + step);
         Serial.println(current);
-        servoController.setPWM(0, 0, current);
     } else if (digitalRead(PIN_BTN_DEC)) {
-        current -= step;
+        setServoTicks(current - step);
         Serial.println(current);
-        servoController.setPWM(0, 0, current);
     }
 }
 
@@ -157,8 +159,7 @@ void handleOK() {
 )===");
             state = State::FIND_LONGEST_PULSE_LENGTH;
             tickRange.min = current;
-            current = maxTicksGuess;
-            servoController.setPWM(0, 0, current);
+            setServoTicks(maxTicksGuess);
             break;
         };
         case State::FIND_LONGEST_PULSE_LENGTH: {
@@ -181,8 +182,7 @@ Servo is now in the middle position.
 )===");
 
             state = State::ADJUST_MIDDLE;
-            current = middle;
-            servoController.setPWM(0, 0, middle);
+            setServoTicks(middle);
             break;
         };
         case State::ADJUST_MIDDLE: {
