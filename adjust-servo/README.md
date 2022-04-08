@@ -13,6 +13,7 @@ Follow Instructions on the Serial Monitor:
 2. Find the longest PWM pulse length
 3. Adjust 0˚ position
 4. Find 90˚ position
+5. Repeat from step 1 for another servo
 
 ### Button Controls
 

@@ -10,8 +10,8 @@
 #define PIN_BTN_OK GPIO_NUM_25
 
 typedef enum {
-    FIND_1ST_PWM_PULSE_LENGTH_LIMIT,
-    FIND_2ND_PWM_PULSE_LENGTH_LIMIT,
+    FIND_SHORTEST_PULSE_LENGTH,
+    FIND_LONGEST_PULSE_LENGTH,
     ADJUST_MIDDLE,
     FIND_90_DEG,
 } State;
@@ -25,6 +25,8 @@ int servo;
 Range<PWMTicks> tickRange;
 PWMTicks middle;
 PWMTicks offset;
+PWMTicks minTicksGuess = -1;
+PWMTicks maxTicksGuess = -1;
 
 void initSerial() {
     Serial.begin(115200);
@@ -46,16 +48,23 @@ void initServoController() {
 }
 
 void reset() {
+    if (minTicksGuess <= 0 || maxTicksGuess <= 0) {
+        minTicksGuess = maxTicksGuess = 300;
+    } else {
+        minTicksGuess = tickRange.min + 20;
+        maxTicksGuess = tickRange.max - 20;
+    }
+
     step = 1;
-    current = 300;
+    current = minTicksGuess;
     tickRange.min = tickRange.max = 0;
-    state = State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT;
+    state = State::FIND_SHORTEST_PULSE_LENGTH;
     offset = 0;
     middle = 0;
-    servoController.wakeup();
+    servoController.setPWM(0, 0, current);
     Serial.printf(R"===(
 --- Step 1 ---
-1. Move servo to its 1st PWM pulse length limit
+1. Move servo to the shortest PWM pulse length
 2. Press OK
 --- Step 1 ---
 )===");
@@ -139,18 +148,20 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, A
 
 void handleOK() {
     switch (state) {
-        case State::FIND_1ST_PWM_PULSE_LENGTH_LIMIT: {
+        case State::FIND_SHORTEST_PULSE_LENGTH: {
             Serial.printf(R"===(
 --- Step 2 ---
-1. Move servo to its 2nd PWM pulse length limit
+1. Move servo to the longest PWM pulse length
 2. Press OK
 --- Step 2 ---
 )===");
-            state = State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT;
+            state = State::FIND_LONGEST_PULSE_LENGTH;
             tickRange.min = current;
+            current = maxTicksGuess;
+            servoController.setPWM(0, 0, current);
             break;
         };
-        case State::FIND_2ND_PWM_PULSE_LENGTH_LIMIT: {
+        case State::FIND_LONGEST_PULSE_LENGTH: {
             tickRange.max = current;
             if (!(tickRange.min < tickRange.max)) {
                 PWMTicks tmp = tickRange.min;
