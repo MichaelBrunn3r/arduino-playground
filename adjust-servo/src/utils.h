@@ -18,7 +18,8 @@ PWMTicks angleToTicks(AngleDeg angle, AngleDeg maxAngle, Range<PWMTicks> tickRan
     return map(angle, -maxAngle / 2, maxAngle / 2, tickRange.min, tickRange.max);
 }
 
-float ticksToPulseLengthMs(PWMTicks ticks) {
-    float pwmPeriodMs = 20.0f;
-    return (ticks / 4096.0f) * pwmPeriodMs;
+float ticksToPulseLengthMs(PWMTicks ticks, Adafruit_PWMServoDriver driver) {
+    // Inverse of Equation 1 of the datsheet
+    static float msPerSecond = 1000.0;
+    return ticks * ((msPerSecond * (driver.readPrescale() + 1)) / driver.getOscillatorFrequency());
 }

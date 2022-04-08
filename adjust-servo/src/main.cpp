@@ -104,38 +104,44 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, A
                   AngleDeg maxRotation) {
     Serial.println("--- Summary ---");
     Serial.printf("- Rotation range: %d˚\n", maxRotation);
-    Serial.printf("- Offset: %d Ticks = %f ms\n\n", offset, ticksToPulseLengthMs(offset));
+    Serial.printf("- Offset: %d Ticks = %f ms\n", offset,
+                  ticksToPulseLengthMs(offset, servoController));
+    Serial.printf("- PWM Period: %d Hz\n", SERVO_FREQ);
+    Serial.printf("- Oscillator Frequency : %f MHz\n",
+                  servoController.getOscillatorFrequency() / 1000000.0f);
 
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("|          | Ticks | Pulse length |\n");
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %8s | %5d | %9f ms |\n", "Shortest", tickRange.min,
-                  ticksToPulseLengthMs(tickRange.min));
+                  ticksToPulseLengthMs(tickRange.min, servoController));
     servoController.setPWM(0, 0, tickRange.min);
     delay(2000);
 
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %8s | %5d | %9f ms |\n", "Longest", tickRange.max,
-                  ticksToPulseLengthMs(tickRange.max));
+                  ticksToPulseLengthMs(tickRange.max, servoController));
     servoController.setPWM(0, 0, tickRange.max);
     delay(2000);
 
     PWMTicks ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %9s | %5d | %9f ms |\n", "0°", ticks0Deg, ticksToPulseLengthMs(ticks0Deg));
+    Serial.printf("| %9s | %5d | %9f ms |\n", "0°", ticks0Deg,
+                  ticksToPulseLengthMs(ticks0Deg, servoController));
     servoController.setPWM(0, 0, ticks0Deg);
     delay(2000);
 
     PWMTicks ticks90Deg = angleToTicks(90 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %9s | %5d | %9f ms |\n", "90°", ticks90Deg, ticksToPulseLengthMs(ticks90Deg));
+    Serial.printf("| %9s | %5d | %9f ms |\n", "90°", ticks90Deg,
+                  ticksToPulseLengthMs(ticks90Deg, servoController));
     servoController.setPWM(0, 0, ticks90Deg);
     delay(2000);
 
     PWMTicks ticksNeg90Deg = angleToTicks(-90 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %9s | %5d | %9f ms |\n", "-90°", ticksNeg90Deg,
-                  ticksToPulseLengthMs(ticksNeg90Deg));
+                  ticksToPulseLengthMs(ticksNeg90Deg, servoController));
     servoController.setPWM(0, 0, ticksNeg90Deg);
     delay(2000);
 
@@ -182,7 +188,6 @@ Servo is now in the middle position.
         };
         case State::ADJUST_MIDDLE: {
             offset = current - middle;
-            Serial.printf("Middle offset: %d ticks\n", offset);
 
             Serial.printf(R"===(
 --- Step 4 ---
