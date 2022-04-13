@@ -8,6 +8,7 @@
 #define PIN_BTN_INC GPIO_NUM_33
 #define PIN_BTN_DEC GPIO_NUM_32
 #define PIN_BTN_OK GPIO_NUM_25
+#define PIN_POS_FEEDBACK GPIO_NUM_4
 
 typedef enum {
     FIND_SHORTEST_PULSE_LENGTH,
@@ -27,25 +28,6 @@ PWMTicks middle;
 PWMTicks offset;
 PWMTicks minTicksGuess = -1;
 PWMTicks maxTicksGuess = -1;
-
-void initSerial() {
-    Serial.begin(115200);
-    while (!Serial && !Serial.available()) {
-    }
-    Serial.println();
-}
-
-void initButtons() {
-    pinMode(PIN_BTN_INC, INPUT_PULLDOWN);
-    pinMode(PIN_BTN_DEC, INPUT_PULLDOWN);
-    pinMode(PIN_BTN_OK, INPUT_PULLDOWN);
-}
-
-void initServoController() {
-    servoController.begin();
-    servoController.setOscillatorFrequency(27000000);
-    servoController.setPWMFreq(SERVO_FREQ);
-}
 
 void setServoTicks(PWMTicks ticks) {
     current = ticks;
@@ -75,12 +57,27 @@ void reset() {
 }
 
 void setup() {
-    initSerial();
-    initButtons();
-    initServoController();
+    // Init Serial
+    Serial.begin(115200);
+    while (!Serial && !Serial.available()) {
+    }
+    Serial.println();
+
+    // Init buttons
+    pinMode(PIN_BTN_INC, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_DEC, INPUT_PULLDOWN);
+    pinMode(PIN_BTN_OK, INPUT_PULLDOWN);
+
+    // Init position feedback pin
+    pinMode(PIN_POS_FEEDBACK, INPUT);
+
+    // Init servo controller
+    servoController.begin();
+    servoController.setOscillatorFrequency(27000000);
+    servoController.setPWMFreq(SERVO_FREQ);
 
     reset();
-    delay(1000);
+    delay(500);
 }
 
 void handleTickControlls() {
@@ -93,10 +90,10 @@ void handleTickControlls() {
         delay(200);
     } else if (digitalRead(PIN_BTN_INC)) {
         setServoTicks(current + step);
-        Serial.println(current);
+        Serial.printf("Ticks: %d, Feedback: %d\n", current, analogRead(PIN_POS_FEEDBACK));
     } else if (digitalRead(PIN_BTN_DEC)) {
         setServoTicks(current - step);
-        Serial.println(current);
+        Serial.printf("Ticks: %d, Feedback: %d\n", current, analogRead(PIN_POS_FEEDBACK));
     }
 }
 
@@ -124,21 +121,21 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, A
     servoController.setPWM(0, 0, tickRange.max);
     delay(2000);
 
-    PWMTicks ticks0Deg = angleToTicks(0 + offsetDeg, maxRotation, tickRange);
+    PWMTicks ticks0Deg = angleToTicks(0.0 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %9s | %5d | %9f ms |\n", "0°", ticks0Deg,
                   ticksToPulseLengthMs(ticks0Deg, servoController));
     servoController.setPWM(0, 0, ticks0Deg);
     delay(2000);
 
-    PWMTicks ticks90Deg = angleToTicks(90 + offsetDeg, maxRotation, tickRange);
+    PWMTicks ticks90Deg = angleToTicks(90.0 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %9s | %5d | %9f ms |\n", "90°", ticks90Deg,
                   ticksToPulseLengthMs(ticks90Deg, servoController));
     servoController.setPWM(0, 0, ticks90Deg);
     delay(2000);
 
-    PWMTicks ticksNeg90Deg = angleToTicks(-90 + offsetDeg, maxRotation, tickRange);
+    PWMTicks ticksNeg90Deg = angleToTicks(-90.0 + offsetDeg, maxRotation, tickRange);
     Serial.printf("|----------|-------|--------------|\n");
     Serial.printf("| %9s | %5d | %9f ms |\n", "-90°", ticksNeg90Deg,
                   ticksToPulseLengthMs(ticksNeg90Deg, servoController));
