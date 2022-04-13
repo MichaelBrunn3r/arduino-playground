@@ -107,41 +107,44 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, A
     Serial.printf("- Oscillator Frequency : %f MHz\n",
                   servoController.getOscillatorFrequency() / 1000000.0f);
 
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("|          | Ticks | Pulse length |\n");
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %8s | %5d | %9f ms |\n", "Shortest", tickRange.min,
-                  ticksToPulseLengthMs(tickRange.min, servoController));
+    Serial.printf("|----------|-------|--------------|----------|\n");
+    Serial.printf("|          | Ticks | Pulse length | Feedback |\n");
+    Serial.printf("|----------|-------|--------------|----------|\n");
     servoController.setPWM(0, 0, tickRange.min);
-    delay(2000);
+    delay(1000);
+    Serial.printf("| %8s | %5d | %9f ms | %8d |\n", "Shortest", tickRange.min,
+                  ticksToPulseLengthMs(tickRange.min, servoController),
+                  analogRead(PIN_POS_FEEDBACK));
 
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %8s | %5d | %9f ms |\n", "Longest", tickRange.max,
-                  ticksToPulseLengthMs(tickRange.max, servoController));
+    Serial.printf("|----------|-------|--------------|----------|\n");
     servoController.setPWM(0, 0, tickRange.max);
-    delay(2000);
+    delay(1000);
+    Serial.printf("| %8s | %5d | %9f ms | %8d |\n", "Longest", tickRange.max,
+                  ticksToPulseLengthMs(tickRange.max, servoController),
+                  analogRead(PIN_POS_FEEDBACK));
 
     PWMTicks ticks0Deg = angleToTicks(0.0 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %9s | %5d | %9f ms |\n", "0°", ticks0Deg,
-                  ticksToPulseLengthMs(ticks0Deg, servoController));
+    Serial.printf("|----------|-------|--------------|----------|\n");
     servoController.setPWM(0, 0, ticks0Deg);
-    delay(2000);
+    delay(1000);
+    Serial.printf("| %9s | %5d | %9f ms | %8d |\n", "0°", ticks0Deg,
+                  ticksToPulseLengthMs(ticks0Deg, servoController), analogRead(PIN_POS_FEEDBACK));
 
     PWMTicks ticks90Deg = angleToTicks(90.0 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %9s | %5d | %9f ms |\n", "90°", ticks90Deg,
-                  ticksToPulseLengthMs(ticks90Deg, servoController));
+    Serial.printf("|----------|-------|--------------|----------|\n");
     servoController.setPWM(0, 0, ticks90Deg);
-    delay(2000);
+    delay(1000);
+    Serial.printf("| %9s | %5d | %9f ms | %8d |\n", "90°", ticks90Deg,
+                  ticksToPulseLengthMs(ticks90Deg, servoController), analogRead(PIN_POS_FEEDBACK));
 
     PWMTicks ticksNeg90Deg = angleToTicks(-90.0 + offsetDeg, maxRotation, tickRange);
-    Serial.printf("|----------|-------|--------------|\n");
-    Serial.printf("| %9s | %5d | %9f ms |\n", "-90°", ticksNeg90Deg,
-                  ticksToPulseLengthMs(ticksNeg90Deg, servoController));
+    Serial.printf("|----------|-------|--------------|----------|\n");
     servoController.setPWM(0, 0, ticksNeg90Deg);
-    delay(2000);
-    Serial.printf("|----------|-------|--------------|\n");
+    delay(1000);
+    Serial.printf("| %9s | %5d | %9f ms | %8d |\n", "-90°", ticksNeg90Deg,
+                  ticksToPulseLengthMs(ticksNeg90Deg, servoController),
+                  analogRead(PIN_POS_FEEDBACK));
+    Serial.printf("|----------|-------|--------------|----------|\n");
 
     Serial.println("\nmin, max, offset in degree, rotation range:");
     Serial.printf("%d, %d, %f, %f\n", tickRange.min, tickRange.max, offsetDeg, maxRotation);
