@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#include "controller.h"
 #include "strings.h"
 #include "table.h"
 #include "utils.h"
@@ -10,7 +11,6 @@
 #define PIN_BTN_INC GPIO_NUM_33
 #define PIN_BTN_DEC GPIO_NUM_32
 #define PIN_BTN_OK GPIO_NUM_25
-#define PIN_POS_FEEDBACK GPIO_NUM_4
 
 typedef enum {
     FIND_SHORTEST_PULSE_LENGTH,
@@ -21,20 +21,14 @@ typedef enum {
 
 State state;
 
-Adafruit_PWMServoDriver servoController = Adafruit_PWMServoDriver(0x40);
-PWMTicks current;
-PWMTicks step;
-int servo;
+Adafruit_PWMServoDriver servoDriver = Adafruit_PWMServoDriver(0x40);
+ServoController servo(0, GPIO_NUM_4, &servoDriver);
+
 Range<PWMTicks> tickRange;
 PWMTicks middle;
 PWMTicks offset;
 PWMTicks minTicksGuess = -1;
 PWMTicks maxTicksGuess = -1;
-
-void setServoTicks(PWMTicks ticks) {
-    current = ticks;
-    servoController.setPWM(0, 0, current);
-}
 
 void reset() {
     if (minTicksGuess <= 0 || maxTicksGuess <= 0) {
@@ -44,12 +38,14 @@ void reset() {
         maxTicksGuess = tickRange.max - 20;
     }
 
-    step = 1;
     tickRange.min = tickRange.max = 0;
     state = State::FIND_SHORTEST_PULSE_LENGTH;
     offset = 0;
     middle = 0;
-    setServoTicks(minTicksGuess);
+
+    servo.reset();
+    servo.set(minTicksGuess);
+
     Serial.printf(MSG_STEP_1);
 }
 
@@ -65,13 +61,13 @@ void setup() {
     pinMode(PIN_BTN_DEC, INPUT_PULLDOWN);
     pinMode(PIN_BTN_OK, INPUT_PULLDOWN);
 
-    // Init position feedback pin
-    pinMode(PIN_POS_FEEDBACK, INPUT);
+    // Init servo driver
+    servoDriver.begin();
+    servoDriver.setOscillatorFrequency(27000000);
+    servoDriver.setPWMFreq(SERVO_FREQ);
 
     // Init servo controller
-    servoController.begin();
-    servoController.setOscillatorFrequency(27000000);
-    servoController.setPWMFreq(SERVO_FREQ);
+    servo.init();
 
     reset();
     delay(500);
@@ -79,18 +75,15 @@ void setup() {
 
 void handleTickControlls() {
     if (digitalRead(PIN_BTN_INC) && digitalRead(PIN_BTN_DEC)) {
-        if (step != 1)
-            step = 1;
-        else
-            step = 10;
-        Serial.printf("Set step size to: %u\n", step);
+        servo.toggleStepSize();
+        Serial.printf("Set step size to: %u\n", servo.stepSize);
         delay(200);
     } else if (digitalRead(PIN_BTN_INC)) {
-        setServoTicks(current + step);
-        Serial.printf("Ticks: %d, Feedback: %d\n", current, analogRead(PIN_POS_FEEDBACK));
+        servo.inc();
+        Serial.printf("Ticks: %d, Feedback: %d\n", servo.ticks, servo.getPosFeedback());
     } else if (digitalRead(PIN_BTN_DEC)) {
-        setServoTicks(current - step);
-        Serial.printf("Ticks: %d, Feedback: %d\n", current, analogRead(PIN_POS_FEEDBACK));
+        servo.dec();
+        Serial.printf("Ticks: %d, Feedback: %d\n", servo.ticks, servo.getPosFeedback());
     }
 }
 
@@ -103,40 +96,40 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks offset, AngleDeg offsetDeg
 - PWM Period: %d Hz
 - Oscillator Frequency : %f MHz
 )===",
-                  maxRotation, offset, ticksToPulseLengthMs(offset, servoController), offsetDeg,
-                  SERVO_FREQ, servoController.getOscillatorFrequency() / 1000000.0f);
+                  maxRotation, offset, ticksToPulseLengthMs(offset, servoDriver), offsetDeg,
+                  SERVO_FREQ, servoDriver.getOscillatorFrequency() / 1000000.0f);
 
     Table<4> table({"        ", "Ticks", "Pulse length", "Feedback"},
                    "| %8s | %5d | %9f ms | %8d |\n");
     table.printHeader();
 
-    servoController.setPWM(0, 0, tickRange.min);
+    servo.set(tickRange.min);
     delay(1000);
-    table.printRow("Shortest", tickRange.min, ticksToPulseLengthMs(tickRange.min, servoController),
-                   analogRead(PIN_POS_FEEDBACK));
+    table.printRow("Shortest", tickRange.min, ticksToPulseLengthMs(tickRange.min, servoDriver),
+                   servo.getPosFeedback());
 
-    servoController.setPWM(0, 0, tickRange.max);
+    servo.set(tickRange.max);
     delay(1000);
-    table.printRow("Longest", tickRange.max, ticksToPulseLengthMs(tickRange.max, servoController),
-                   analogRead(PIN_POS_FEEDBACK));
+    table.printRow("Longest", tickRange.max, ticksToPulseLengthMs(tickRange.max, servoDriver),
+                   servo.getPosFeedback());
 
     PWMTicks ticks0Deg = angleToTicks(0.0 + offsetDeg, maxRotation, tickRange);
-    servoController.setPWM(0, 0, ticks0Deg);
+    servo.set(ticks0Deg);
     delay(1000);
-    table.printRow("0 deg", ticks0Deg, ticksToPulseLengthMs(ticks0Deg, servoController),
-                   analogRead(PIN_POS_FEEDBACK));
+    table.printRow("0 deg", ticks0Deg, ticksToPulseLengthMs(ticks0Deg, servoDriver),
+                   servo.getPosFeedback());
 
     PWMTicks ticks90Deg = angleToTicks(90.0 + offsetDeg, maxRotation, tickRange);
-    servoController.setPWM(0, 0, ticks90Deg);
+    servo.set(ticks90Deg);
     delay(1000);
-    table.printRow("90 deg", ticks90Deg, ticksToPulseLengthMs(ticks90Deg, servoController),
-                   analogRead(PIN_POS_FEEDBACK));
+    table.printRow("90 deg", ticks90Deg, ticksToPulseLengthMs(ticks90Deg, servoDriver),
+                   servo.getPosFeedback());
 
     PWMTicks ticksNeg90Deg = angleToTicks(-90.0 + offsetDeg, maxRotation, tickRange);
-    servoController.setPWM(0, 0, ticksNeg90Deg);
+    servo.set(ticksNeg90Deg);
     delay(1000);
-    table.printRow("-90 deg", ticksNeg90Deg, ticksToPulseLengthMs(ticksNeg90Deg, servoController),
-                   analogRead(PIN_POS_FEEDBACK));
+    table.printRow("-90 deg", ticksNeg90Deg, ticksToPulseLengthMs(ticksNeg90Deg, servoDriver),
+                   servo.getPosFeedback());
 
     Serial.println("\nmin, max, offset in degree, rotation range:");
     Serial.printf("%d, %d, %f, %f\n", tickRange.min, tickRange.max, offsetDeg, maxRotation);
@@ -148,12 +141,12 @@ void handleOK() {
         case State::FIND_SHORTEST_PULSE_LENGTH: {
             Serial.printf(MSG_STEP_2);
             state = State::FIND_LONGEST_PULSE_LENGTH;
-            tickRange.min = current;
-            setServoTicks(maxTicksGuess);
+            tickRange.min = servo.ticks;
+            servo.set(maxTicksGuess);
             break;
         };
         case State::FIND_LONGEST_PULSE_LENGTH: {
-            tickRange.max = current;
+            tickRange.max = servo.ticks;
             if (!(tickRange.min < tickRange.max)) {
                 PWMTicks tmp = tickRange.min;
                 tickRange.min = tickRange.max;
@@ -164,19 +157,19 @@ void handleOK() {
             Serial.printf(MSG_STEP_3);
 
             state = State::ADJUST_MIDDLE;
-            setServoTicks(middle);
+            servo.set(middle);
             break;
         };
         case State::ADJUST_MIDDLE: {
-            offset = current - middle;
+            offset = servo.ticks - middle;
 
             Serial.printf(MSG_STEP_4);
             state = State::FIND_90_DEG;
-            setServoTicks(tickRange.min + abs((tickRange.min - tickRange.max) / 8));
+            servo.set(tickRange.min + abs((tickRange.min - tickRange.max) / 8));
             break;
         };
         case State::FIND_90_DEG: {
-            float ticksPerDeg = 90.0f / abs(current - (middle + offset));
+            float ticksPerDeg = 90.0f / abs(servo.ticks - (middle + offset));
             AngleDeg maxRotation = abs(tickRange.min - tickRange.max) * ticksPerDeg;
             AngleDeg offsetDeg = offset * ticksPerDeg;
             printSummary(tickRange, offset, offsetDeg, maxRotation);
