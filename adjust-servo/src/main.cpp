@@ -93,7 +93,7 @@ void handleTickControlls() {
     }
 }
 
-void printSummary(Range<PWMTicks> tickRange, PWMTicks middle, PWMTicks offset, AngleDeg offsetDeg,
+void printSummary(Range<PWMTicks> tickRange, PWMTicks offset, AngleDeg offsetDeg,
                   AngleDeg maxRotation) {
     Serial.println("--- Summary ---");
     Serial.printf("- Rotation range: %f˚\n", maxRotation);
@@ -183,7 +183,7 @@ void handleOK() {
             float ticksPerDeg = 90.0f / abs(current - (middle + offset));
             AngleDeg maxRotation = abs(tickRange.min - tickRange.max) * ticksPerDeg;
             AngleDeg offsetDeg = offset * ticksPerDeg;
-            printSummary(tickRange, middle, offset, offsetDeg, maxRotation);
+            printSummary(tickRange, offset, offsetDeg, maxRotation);
             reset();
         };
     }
