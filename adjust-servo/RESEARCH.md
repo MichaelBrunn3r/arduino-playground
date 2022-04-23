@@ -1,0 +1,2 @@
+-   Norwegian Creations: [Tutorial: Potentiometers with Arduino and Filtering](https://www.norwegiancreations.com/2015/10/tutorial-potentiometers-with-arduino-and-filtering/)
+-   [Arduino EMA Library](https://github.com/RafaelReyesCarmona/EMA)
