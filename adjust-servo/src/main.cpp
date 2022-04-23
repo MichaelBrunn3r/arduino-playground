@@ -3,7 +3,7 @@
 #include <Wire.h>
 
 #include "controller.h"
-#include "strings.h"
+#include "message.h"
 #include "table.h"
 #include "utils.h"
 
@@ -39,14 +39,14 @@ void reset() {
     }
 
     tickRange.min = tickRange.max = 0;
-    state = State::FIND_SHORTEST_PULSE_LENGTH;
     offset = 0;
     middle = 0;
 
     servo.reset();
     servo.set(minTicksGuess);
 
-    Serial.printf(MSG_STEP_1);
+    state = State::FIND_SHORTEST_PULSE_LENGTH;
+    printStepInstructions(state, MSG_FIND_SHORTEST_PULSE_LENGTH);
 }
 
 void setup() {
@@ -139,8 +139,8 @@ void printSummary(Range<PWMTicks> tickRange, PWMTicks offset, AngleDeg offsetDeg
 void handleOK() {
     switch (state) {
         case State::FIND_SHORTEST_PULSE_LENGTH: {
-            Serial.printf(MSG_STEP_2);
             state = State::FIND_LONGEST_PULSE_LENGTH;
+            printStepInstructions(state, MSG_FIND_LONGEST_PULSE_LENGTH);
             tickRange.min = servo.ticks;
             servo.set(maxTicksGuess);
             break;
@@ -154,17 +154,16 @@ void handleOK() {
             }
             middle = tickRange.min + (tickRange.max - tickRange.min) / 2;
 
-            Serial.printf(MSG_STEP_3);
-
             state = State::ADJUST_MIDDLE;
+            printStepInstructions(state, MSG_ADJUST_MIDDLE);
             servo.set(middle);
             break;
         };
         case State::ADJUST_MIDDLE: {
             offset = servo.ticks - middle;
 
-            Serial.printf(MSG_STEP_4);
             state = State::FIND_90_DEG;
+            printStepInstructions(state, MSG_FIND_90_DEG);
             servo.set(tickRange.min + abs((tickRange.min - tickRange.max) / 8));
             break;
         };
