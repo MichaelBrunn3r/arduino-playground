@@ -1,2 +1,3 @@
 -   [ESP32 WebSocket Server](https://randomnerdtutorials.com/esp32-websocket-server-arduino/)
+-   [ESP32 Web Server using SPIFFS](https://randomnerdtutorials.com/esp32-web-server-spiffs-spi-flash-file-system/)
 -   [PIO: Uploading files to Filesystem](https://docs.platformio.org/en/latest/platforms/espressif8266.html#uploading-files-to-filesystem)

@@ -87,6 +87,7 @@ void setup() {
     if(!SPIFFS.begin()) return;
     request->send(SPIFFS, "/index.html", "text/html", false, processor);
   });
+  server.serveStatic("/", SPIFFS, "/");
 
   // Start server
   server.begin();
